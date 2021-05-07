@@ -17,7 +17,7 @@ for h in range(1, 16):
     name = "h" + str(h)
     H.append(house(name, 2) ) 
 
-# Generates the agents with a prefernce list of size 3
+# Generates the agents with a prefernce list of size perferences_lenght
 for a in range(1, 30):
     name = "a" + str(a)
     
@@ -62,6 +62,6 @@ def draw_graph(A, H, E):
     
     plt.show()
 
-chap = CHAProblem(A, H, E, False)
+chap = CHAProblem(A, H, E, False, 9999, perferences_lenght)
 chap.solve()
 draw_graph(chap.return_values['solution'][0]['agents'], chap.return_values['solution'][1]['houses'], chap.return_values['solution'][3]['matchings'])
