@@ -1,8 +1,8 @@
 # Python 3.7.3 - Capacitated House Allocation Problem
 # Programmer: Paul Maier
 # 
-# This is the python implementation of the Capacitated House Allocation Problem with Ties and an algorithm to solve it.
-# The algorithm finds a popular matching for a given instance of the Capacitated House Allocation Problem with Ties. 
+# This is the python implementation of the Capacitated House Allocation Problem and an algorithm to solve it.
+# The algorithm finds a popular matching for a given instance of the Capacitated House Allocation Problem. 
 #
 # The algorithm is largely based on the paper 'Popular Matchings in the Capacitated House Allocation Problem' 
 # by David F. Manlove and Collin T.S. Sng. For further details regarding the problem and mathematical aspects
@@ -18,21 +18,21 @@ import copy
 
 ### Class definitions ###
  
-# Every agent has a name and preferences over a subset of all houses. The prferences may conrain ties and therefore need to contain only tuples
-class agent:
+# Every agent has a name and strict preferences over a subset of all houses
+class agentInternal:
     def __init__(self, name, preferences):
         self.name = name
         self.preferences = preferences
 
 # Every house has a name and a capacity (maximum number of agents it can hold)
-class house:
+class houseInternal:
     def __init__(self, name, capacity):
         self.name = name
         self.capacity = capacity
 
-# The class Capacitated House Allocation Problem with Ties can be instanced with the agents, houses and edges and solved using the solve() function
-class CHATProblem:
-    def __init__(self, agents, houses, edges, debug=False, matched_weight=9999, prefernces_lenght=4):
+# The class Capacitated House Allocation Problem can be instanced with the agents, houses and edges and solved using the solve() function
+class CHAProblem:
+    def __init__(self, agents, houses, edges, debug=False, matched_weight=9999):
         # Determines if debug information should be printed 
         self.debug=debug
 
@@ -48,9 +48,6 @@ class CHATProblem:
         
         # The weight of edges which indicate a match
         self.matched_weight = matched_weight
-        
-        # The maximum lengh of an agnets prefernces
-        self.preferences_lenght = prefernces_lenght
 
 
     ### Technical function definitions ###
@@ -70,10 +67,8 @@ class CHATProblem:
     def fagents(self, for_house, search_A):
         fagents = []
         for find_agent in search_A:
-            for loop_preference in find_agent.preferences[0]:
-                if for_house.name == loop_preference.name:
-                    fagents.append(find_agent)
-                    break
+            if find_agent.preferences[0].name == for_house.name:
+                fagents.append(find_agent)
         return fagents
 
     # Gives back the current house of the search_agent and None if the agent doesn't have one
@@ -181,37 +176,8 @@ class CHATProblem:
         # Finds all fhouses and appends them to the fhouses array
         for loop_house in H:
             for loop_agent in A:
-                for loop_prefernece in loop_agent.preferences[0]:
-                    if loop_house.name == loop_prefernece.name and not loop_house in fhouses:
-                        fhouses.append(loop_house)
-                        break
-        
-        # Calcuates the first-choice graph, with Ef which only contains edges between first houses an their agents
-        Af = copy.deepcopy(self.A)
-        Hf = copy.deepcopy(self.H)
-        Ef = []
-        
-        for edge in E:
-            if edge[2] == self.preferences_lenght: # Higher number -> higher preference (the maximum preference lenght of all agents should represent the first choice)
-                Ef.append(edge)
-        
-        # Transforms the fist choice graph to a network flow and calulates the maximum_flow
-        transformed_Ef = []
-
-        for edge in Ef:
-            transformed_Ef.append((edge[0], edge[1], self.preferences_lenght-edge[2], 1)) # Max flow min cost algorithm -> weight must be small for higher prefernces (0 should represent the first choice)
-        
-        for loop_agent in Af:
-            transformed_Ef.append(('source', loop_agent.name, 1, 1))
-
-        for loop_house in Hf:
-            transformed_Ef.append((loop_house.name, 'sink', 1, loop_house.capacity))
-
-        maximum_flow = self.draw_network_flow_graph(Af, Hf, transformed_Ef)
-
-        print(maximum_flow)
-        
-        exit()
+                if loop_house.name == loop_agent.preferences[0].name and not loop_house in fhouses:
+                    fhouses.append(loop_house)
 
         # Fill if possible up the fhouses with the according agents
         for fhouse in fhouses:
@@ -277,7 +243,9 @@ class CHATProblem:
         transformed_E = []
 
         for edge in remaining_E:
-            transformed_E.append((edge[0], edge[1], 4-edge[2], 1))
+            transformed_E.append((edge[0], edge[1], self.preferences_lenght-edge[2], 1)) # Max flow min cost algorithm -> weight must be small for higher prefernces (0 should represent the first choice)
+        
+        print(transformed_E)
 
         remaining_E = transformed_E
 
@@ -303,39 +271,12 @@ class CHATProblem:
             for matching in M:
                 edges_M.append((matching[0].name, matching[1].name, self.matched_weight))
 
-            #for copy_agent in copy_A:
-            #    print(copy_agent.preferences)
-            #    if len(self.fagents(copy_agent.preferences[0], copy_A)) > copy_agent.preferences[0].capacity and self.agents_in_house(copy_agent.preferences[0], M) < copy_agent.preferences[0].capacity and self.house_of_agent(copy_agent, M) != copy_agent.preferences[0]:
-            #        self.promote(copy_agent, copy_agent.preferences[0], M)
+            for copy_agent in copy_A:
+                if len(self.fagents(copy_agent.preferences[0], copy_A)) > copy_agent.preferences[0].capacity and self.agents_in_house(copy_agent.preferences[0], M) < copy_agent.preferences[0].capacity and self.house_of_agent(copy_agent, M) != copy_agent.preferences[0]:
+                    self.promote(copy_agent, copy_agent.preferences[0], M)
 
             self.append_to_return_matching_state('solution', copy_A, copy_H, [], edges_M)
             return
         else:
             self.append_to_return_matching_state('solution', copy_A, copy_H, [], [])
             return
-
-if __name__ == "__main__":
-    h1 = house("h1", 2)
-    h2 = house("h2", 1)
-    h3 = house("h3", 2)
-
-    a1 = agent("a1", [(h1, h2), (h3)])
-    a2 = agent("a2", [(h3,)])
-    a3 = agent("a3", [(h1, h2)])
-    a4 = agent("a4", [(h3,)])
-    a5 = agent("a5", [(h3,)])
-
-    H1 = [h1, h2, h3]
-    A1 = [a1, a2, a3, a4, a5]
-    E1 = [("a1", "h1", 2),
-          ("a1", "h2", 2),
-          ("a1", "h3", 1),
-          ("a2", "h3", 2),
-          ("a3", "h1", 2),
-          ("a3", "h2", 2),
-          ("a4", "h3", 2),
-          ("a5", "h3", 2)]
-
-    chatp = CHATProblem(A1, H1, E1, False, 9999, 2)
-    chatp.solve()
-    print(chatp.return_values['solution'][0]['agents'], chatp.return_values['solution'][1]['houses'], chatp.return_values['solution'][3]['matchings'])
